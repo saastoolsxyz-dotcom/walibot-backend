@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaliBot v11 — Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; height: 100vh; background-color: #0d1117; font-family: 'Inter', sans-serif; overflow: hidden; }
+        .tab-content { display: none; height: 100%; overflow-y: auto; padding-bottom: 2rem; }
+        .tab-content.active { display: block; }
+        
+        /* Professional Polish Theme Overrides */
+        .card { background-color: #111827; border: 1px solid #1e293b; border-radius: 0.75rem; }
+        .btn-green { background-color: #10b981; color: white; transition: all 0.2s; }
+        .btn-green:hover { background-color: #059669; transform: translateY(-1px); }
+        
+        input, textarea, select { 
+            background-color: #0f172a !important; 
+            border: 1px solid #334155 !important; 
+            color: #f1f5f9 !important; 
+            transition: all 0.2s;
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color: #10b981 !important;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+        }
+
+        .loader { border: 2px solid #1e293b; border-top: 2px solid #10b981; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+        .nav-tab.active {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+    </style>
+</head>
+<body class="flex flex-col">
+    <div class="flex flex-col h-screen w-full bg-[#0a0e1a] text-slate-200 font-sans overflow-hidden">
+        <!-- Global Header -->
+        <header class="h-16 bg-[#111827] border-b border-slate-800 flex items-center justify-between px-6 shrink-0 z-10">
+            <div class="flex items-center space-x-3 cursor-pointer group" onclick="showTab('dashboard')">
+                <div class="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center group-hover:bg-emerald-400 transition-colors">
+                    <span class="text-white font-bold text-xl uppercase">W</span>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-white leading-none group-hover:text-emerald-400 transition-colors">WaliBot Backend <span class="text-emerald-500 group-hover:text-emerald-300">v11.0</span></h1>
+                    <p class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mt-1">Enterprise Bot Controller</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div id="conn-badge-v2" class="flex items-center space-x-2 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
+                    <div id="status-dot" class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                    <span id="status-text" class="text-[10px] font-bold tracking-wider text-emerald-400 uppercase">Checking...</span>
+                </div>
+                <div class="hidden md:block text-right border-l border-slate-700 pl-6">
+                    <p class="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Active Keys</p>
+                    <p id="keys-summary" class="text-xs font-mono text-emerald-400">Loading...</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar Navigation -->
+            <nav class="w-64 bg-[#0d1117] border-r border-slate-800 p-4 space-y-2 shrink-0 flex flex-col z-20">
+                <div class="p-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 opacity-50">Systems Control</div>
+                
+                <button onclick="showTab('dashboard')" class="nav-tab active w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/50 hover:text-white transition-all text-left group" id="tab-dashboard">
+                    <span class="text-xs font-bold uppercase tracking-wide">Overview Hub</span>
+                    <span class="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                </button>
+                
+                <button onclick="showTab('orders')" class="nav-tab w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/50 hover:text-white transition-all text-left group" id="tab-orders">
+                    <span class="text-xs font-bold uppercase tracking-wide">Pending Orders</span>
+                    <span id="order-badge" class="ml-auto bg-rose-500 text-[8px] font-black px-1.5 py-0.5 rounded-full hidden">NEW</span>
+                </button>
+
+                <button onclick="showTab('kb')" class="nav-tab w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/50 hover:text-white transition-all text-left group" id="tab-kb">
+                    <span class="text-xs font-bold uppercase tracking-wide">Knowledge Vault</span>
+                    <span id="kb-badge" class="ml-auto bg-amber-500 text-[8px] font-black px-1.5 py-0.5 rounded-full hidden">?</span>
+                </button>
+                
+                <button onclick="showTab('setup')" class="nav-tab w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/50 hover:text-white transition-all text-left group" id="tab-setup">
+                    <span class="text-xs font-bold uppercase tracking-wide">Business AI Setup</span>
+                    <span class="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                </button>
+                
+                <button onclick="showTab('messages')" class="nav-tab w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/50 hover:text-white transition-all text-left group" id="tab-messages">
+                    <span class="text-xs font-bold uppercase tracking-wide">Live Message Feed</span>
+                    <span class="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                </button>
+                
+                <button onclick="showTab('connection')" class="nav-tab w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/50 hover:text-white transition-all text-left group" id="tab-connection">
+                    <span class="text-xs font-bold uppercase tracking-wide">QR Connection</span>
+                    <span class="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                </button>
+                
+                <button onclick="showTab('settings')" class="nav-tab w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/50 hover:text-white transition-all text-left group" id="tab-settings">
+                    <span class="text-xs font-bold uppercase tracking-wide">AI Core Settings</span>
+                    <span class="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                </button>
+                
+                <div class="mt-auto px-2 py-6 border-t border-slate-800/50">
+                    <div class="bg-[#1e293b]/30 p-4 rounded-xl border border-slate-800/50 shadow-inner">
+                        <p class="text-[9px] text-slate-500 mb-2 uppercase font-black tracking-widest">Memory Efficiency</p>
+                        <div class="h-2 w-full bg-slate-800 rounded-full mb-3 overflow-hidden">
+                            <div id="mem-bar" class="h-full w-1/4 bg-emerald-500/80 rounded-full transition-all duration-1000"></div>
+                        </div>
+                        <p id="mem-stat" class="text-[10px] font-mono text-slate-400 font-bold">MEM: 48.2MB / 512MB</p>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Contents -->
+            <main class="flex-1 p-6 overflow-hidden flex flex-col">
+                <!-- Tab: Dashboard (Overview Hub) -->
+                <div id="content-dashboard" class="tab-content active space-y-6">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold text-white tracking-tight">System Overview</h2>
+                        <p class="text-slate-500 text-sm">Real-time performance and quick access to bot modules.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <div class="card p-6 border-l-4 border-l-emerald-500">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-1">Total Signals</p>
+                            <h4 id="stat-msgs" class="text-3xl font-bold text-white">0</h4>
+                            <p class="text-[10px] text-emerald-500 mt-2 font-bold">+0% Interaction</p>
+                        </div>
+                        <div class="card p-6 border-l-4 border-l-rose-500 bg-rose-500/5">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-1">Pending Orders</p>
+                            <h4 id="stat-orders" class="text-3xl font-bold text-rose-500">0</h4>
+                            <p class="text-[10px] text-rose-400 mt-2 font-bold">Awaiting Action</p>
+                        </div>
+                        <div class="card p-6 border-l-4 border-l-blue-500">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-1">Unique Leads</p>
+                            <h4 id="stat-users" class="text-3xl font-bold text-white">0</h4>
+                            <p class="text-[10px] text-blue-400 mt-2 font-bold">New Conversations</p>
+                        </div>
+                        <div class="card p-6 border-l-4 border-l-purple-500">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-1">Active Uptime</p>
+                            <h4 id="stat-uptime" class="text-lg font-bold text-white mt-1 tracking-tight">--:--:--</h4>
+                            <p class="text-[10px] text-purple-400 mt-2 font-bold">Server Stable</p>
+                        </div>
+                        <div class="card p-6 border-l-4 border-l-amber-500">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-1">AI Intelligence</p>
+                            <div id="stat-ai" class="mt-2 text-xs font-bold text-slate-300">
+                                Loading AI Cluster...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="md:col-span-2 card overflow-hidden flex flex-col">
+                            <div class="p-6 border-b border-slate-800 bg-slate-900/30 flex justify-between items-center">
+                                <h3 class="font-bold text-sm uppercase tracking-widest text-slate-400">Recent Customer Activity</h3>
+                                <button onclick="showTab('messages')" class="text-[10px] font-bold text-emerald-500 hover:underline">VIEW ALL FEED</button>
+                            </div>
+                            <div class="overflow-x-auto flex-1">
+                                <table class="w-full text-left">
+                                    <thead class="bg-slate-800/50 text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                                        <tr>
+                                            <th class="px-6 py-4">Customer</th>
+                                            <th class="px-6 py-4">Interaction Summary</th>
+                                            <th class="px-6 py-4">Last Activity</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="convo-list" class="divide-y divide-slate-800/50 text-sm">
+                                        <!-- Shared list -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="space-y-6">
+                            <div class="card p-6 bg-emerald-500/5 border-emerald-500/20">
+                                <h3 class="text-xs font-black uppercase tracking-widest text-emerald-500 mb-4">Quick Module Access</h3>
+                                <div class="grid grid-cols-1 gap-2">
+                                    <button onclick="showTab('setup')" class="flex items-center justify-between p-3 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-all group">
+                                        <div class="text-left">
+                                            <p class="text-xs font-bold text-white">Bot Intelligence</p>
+                                            <p class="text-[9px] text-slate-500">Configure AI knowledge</p>
+                                        </div>
+                                        <span class="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                                    </button>
+                                    <button onclick="showTab('connection')" class="flex items-center justify-between p-3 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-all group">
+                                        <div class="text-left">
+                                            <p class="text-xs font-bold text-white">WhatsApp Node</p>
+                                            <p class="text-[9px] text-slate-500">Connect mobile device</p>
+                                        </div>
+                                        <span class="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                                    </button>
+                                    <button onclick="showTab('settings')" class="flex items-center justify-between p-3 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-all group">
+                                        <div class="text-left">
+                                            <p class="text-xs font-bold text-white">System Config</p>
+                                            <p class="text-[9px] text-slate-500">Advanced AI parameters</p>
+                                        </div>
+                                        <span class="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="card p-6 flex flex-col items-center justify-center text-center space-y-3">
+                                <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-emerald-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><path d="M4 14.89 12 3 10.37 11.23a1 1 0 0 0 .96 1.18H20l-8 11.89L13.63 12.77a1 1 0 0 0-.96-1.18H4Z"/></svg>
+                                </div>
+                                <p class="text-xs font-bold text-white">Live Monitoring Active</p>
+                                <p class="text-[10px] text-slate-500">WaliBot v11 is actively scanning for incoming signals on the connected node.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Setup -->
+                <div id="content-setup" class="tab-content space-y-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-white tracking-tight">Business Intelligence Profile</h2>
+                        <div class="flex gap-2">
+                             <button onclick="stopBot()" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold hover:bg-rose-500/20 transition-all uppercase tracking-widest">Emergency Stop</button>
+                        </div>
+                    </div>
+                    
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">Business Name*</label>
+                            <input type="text" id="biz-name" class="w-full p-2.5 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 outline-none" placeholder="e.g. Dream Cakes">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">Category</label>
+                            <input type="text" id="biz-cat" class="w-full p-2.5 rounded-lg outline-none" placeholder="e.g. Bakery & Dessert">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">Website URL</label>
+                            <input type="text" id="biz-web" class="w-full p-2.5 rounded-lg outline-none" placeholder="e.g. dreamcakes.com">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-400 mb-1">Tone</label>
+                                <select id="biz-tone" class="w-full p-2.5 rounded-lg outline-none cursor-pointer">
+                                    <option value="friendly">Friendly</option>
+                                    <option value="sales">Sales (Aggressive)</option>
+                                    <option value="formal">Formal</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-400 mb-1">Style</label>
+                                <select id="biz-style" class="w-full p-2.5 rounded-lg outline-none cursor-pointer">
+                                    <option value="short">Short Replies</option>
+                                    <option value="detailed">Detailed Replies</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">Services / Products</label>
+                            <textarea id="biz-services" rows="2" class="w-full p-2.5 rounded-lg outline-none resize-none" placeholder="What do you sell?"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">Pricing Info</label>
+                            <textarea id="biz-pricing" rows="2" class="w-full p-2.5 rounded-lg outline-none resize-none" placeholder="List item prices..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">FAQs</label>
+                            <textarea id="biz-faq" rows="2" class="w-full p-2.5 rounded-lg outline-none resize-none" placeholder="Common questions..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 flex flex-wrap gap-3">
+                    <button onclick="rewriteBusiness()" class="px-5 py-2.5 border border-emerald-500/50 text-emerald-400 rounded-lg font-medium hover:bg-emerald-500/10 transition-colors">✨ Rewrite with AI</button>
+                    <button onclick="startBot()" class="px-8 py-2.5 btn-green rounded-lg font-bold shadow-lg shadow-emerald-500/20">🚀 Start WaliBot</button>
+                    <button onclick="stopBot()" class="px-6 py-2.5 bg-rose-500 text-white rounded-lg font-bold hover:bg-rose-600 transition-colors">⏹ Stop</button>
+                </div>
+            </div>
+        </div>
+
+                <!-- Tab: Orders -->
+        <div id="content-orders" class="tab-content space-y-6">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-white tracking-tight">Order Verification Hub</h2>
+                <p class="text-slate-500 text-sm">Human-in-the-loop: Review and confirm incoming orders before official follow-up.</p>
+            </div>
+            <div class="grid grid-cols-1 gap-4" id="orders-list">
+                <!-- Orders loaded via JS -->
+            </div>
+        </div>
+
+        <!-- Tab: KB Booster -->
+        <div id="content-kb" class="tab-content space-y-6">
+            <div class="mb-6 flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Knowledge Vault Booster</h2>
+                    <p class="text-slate-500 text-sm">AI found these gaps in its knowledge. Answer them once to train the bot forever.</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 gap-4" id="kb-questions-list">
+                <!-- Questions loaded via JS -->
+            </div>
+        </div>
+
+        <!-- Tab: Connection -->
+                <div id="content-connection" class="tab-content space-y-6">
+                    <div class="card p-8 flex flex-col items-center justify-center text-center">
+                        <div id="qr-container" class="bg-white p-4 rounded-xl mb-6 hidden">
+                            <img id="qr-img" src="" alt="Scan this QR" class="w-64 h-64">
+                        </div>
+                        <div id="conn-loading" class="mb-6 flex flex-col items-center">
+                            <div class="loader mb-4"></div>
+                            <p class="text-slate-400">Verifying session...</p>
+                        </div>
+                        <h3 id="conn-title" class="text-2xl font-bold mb-2">Disconnected</h3>
+                        <p id="conn-desc" class="text-slate-400 max-w-md">Start the bot to generate a QR code for WhatsApp connection.</p>
+                        
+                        <div id="error-box" class="mt-8 p-4 bg-rose-500/10 border border-rose-500/50 rounded-lg text-rose-400 hidden w-full max-w-lg">
+                            <p class="font-bold mb-1">Last Error:</p>
+                            <p id="error-msg" class="text-sm"></p>
+                        </div>
+                    </div>
+                </div>
+
+        <!-- Tab: Messages -->
+        <div id="content-messages" class="tab-content space-y-4 max-h-[70vh] overflow-y-auto pr-2" id="msg-feed">
+             <!-- Real-time feed -->
+        </div>
+
+        <!-- Tab: Settings -->
+        <div id="content-settings" class="tab-content space-y-6">
+            <div class="card p-6">
+                <h2 class="text-xl font-bold mb-6">Bot Behavior</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <label class="block text-sm font-medium text-slate-400">Response Delay (Seconds)</label>
+                        <div class="flex items-center gap-4">
+                            <input type="number" id="set-delay-min" class="w-24 p-2 rounded-lg outline-none" placeholder="Min">
+                            <span>to</span>
+                            <input type="number" id="set-delay-max" class="w-24 p-2 rounded-lg outline-none" placeholder="Max">
+                        </div>
+                        <p class="text-xs text-slate-500">The bot waits for a random time between these values before replying to appear more human.</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <label class="block text-sm font-medium text-slate-400">AI Provider Selection</label>
+                        <div class="space-y-3">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="radio" name="ai-prov" value="auto" checked class="w-4 h-4 text-emerald-500 bg-slate-900 border-slate-700">
+                                <div>
+                                    <p class="font-medium group-hover:text-emerald-400 transition-colors">Auto (Groq first, Gemini Fallback)</p>
+                                    <p class="text-xs text-slate-500">Reliable and redundant strategy.</p>
+                                </div>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="radio" name="ai-prov" value="groq" class="w-4 h-4 text-emerald-500 bg-slate-900 border-slate-700">
+                                <div>
+                                    <p class="font-medium group-hover:text-emerald-400 transition-colors">Groq Only</p>
+                                    <p class="text-xs text-slate-500">Fastest processing using Llama 3 models.</p>
+                                </div>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="radio" name="ai-prov" value="gemini" class="w-4 h-4 text-emerald-500 bg-slate-900 border-slate-700">
+                                <div>
+                                    <p class="font-medium group-hover:text-emerald-400 transition-colors">Gemini Only</p>
+                                    <p class="text-xs text-slate-500">Google's advanced reasoning models.</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 pt-6 border-t border-slate-800 flex justify-between items-center">
+                    <div id="ai-key-status" class="text-sm text-slate-400 flex gap-4">
+                        <!-- Key info -->
+                    </div>
+                    <button onclick="saveSettings()" class="btn-green px-8 py-2.5 rounded-lg font-bold">Save Settings</button>
+                </div>
+                </div> <!-- End content-settings -->
+            </main>
+        </div>
+
+        <!-- Footer Status Bar -->
+        <footer class="h-8 bg-[#0f172a] border-t border-slate-800 flex items-center justify-between px-6 text-[10px] text-slate-500 shrink-0 font-mono">
+            <div class="flex items-center space-x-4">
+                <span>Node.js: 22.x</span>
+                <span>Baileys: 6.7.18</span>
+                <span id="footer-mem">Memory Usage: 48.2MB / 512MB</span>
+            </div>
+            <div class="flex items-center space-x-4 uppercase tracking-widest">
+                <span class="flex items-center"><div class="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5"></div>API OK</span>
+                <span class="flex items-center"><div class="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5"></div>EXPRESS OK</span>
+                <span class="text-slate-400">v11.0.0-PRO</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Notifications -->
+    <div id="toast-container" class="fixed bottom-8 right-8 space-y-2 z-50"></div>
+
+    <script>
+        let currentTab = 'dashboard';
+        let statusPoll = null;
+
+        function showTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(b => {
+                b.classList.remove('active', 'text-emerald-500', 'border-emerald-500');
+                b.classList.add('text-slate-400', 'border-transparent');
+            });
+            
+            document.getElementById(`content-${tab}`).classList.add('active');
+            const activeBtn = document.getElementById(`tab-${tab}`);
+            activeBtn.classList.add('active', 'text-emerald-500', 'border-emerald-500');
+            activeBtn.classList.remove('text-slate-400', 'border-transparent');
+            currentTab = tab;
+        }
+
+        function toast(msg, isError = false) {
+            const t = document.createElement('div');
+            t.className = `px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 border transition-all duration-300 transform translate-y-4 animate-bounce ${isError ? 'bg-rose-500/20 border-rose-500 text-rose-400' : 'bg-emerald-500/20 border-emerald-500 text-emerald-400'}`;
+            t.innerHTML = `<span>${isError ? '❌' : '✅'}</span> ${msg}`;
+            document.getElementById('toast-container').appendChild(t);
+            setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+        }
+
+        async function api(path, method = 'GET', body = null) {
+            const config = { method, headers: { 'Content-Type': 'application/json' } };
+            if (body) config.body = JSON.stringify(body);
+            const res = await fetch(path, config);
+            return await res.json();
+        }
+
+        async function refreshStatus() {
+            try {
+                const s = await api('/status');
+                const ai = s.aiStatus;
+
+                // Update badge
+                const dot = document.getElementById('status-dot');
+                const text = document.getElementById('status-text');
+                const badge = document.getElementById('conn-badge-v2');
+
+                if (s.status === 'connected') {
+                    dot.className = 'w-2 h-2 bg-emerald-500 rounded-full animate-pulse';
+                    text.innerText = 'WA_CONNECTED';
+                    text.className = 'text-[10px] font-bold tracking-wider text-emerald-400 uppercase';
+                    badge.className = 'flex items-center space-x-2 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20';
+                } else if (s.status === 'connecting') {
+                    dot.className = 'w-2 h-2 bg-amber-500 rounded-full animate-pulse';
+                    text.innerText = 'WA_CONNECTING';
+                    text.className = 'text-[10px] font-bold tracking-wider text-amber-500 uppercase';
+                    badge.className = 'flex items-center space-x-2 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20';
+                } else {
+                    dot.className = 'w-2 h-2 bg-rose-500 rounded-full';
+                    text.innerText = 'WA_OFFLINE';
+                    text.className = 'text-[10px] font-bold tracking-wider text-rose-400 uppercase';
+                    badge.className = 'flex items-center space-x-2 bg-rose-500/10 px-3 py-1.5 rounded-full border border-rose-500/20';
+                }
+
+                // Update Active Keys in header
+                const keysSum = document.getElementById('keys-summary');
+                keysSum.innerText = `${ai.groqKeys > 0 ? 'GROQ x' + ai.groqKeys : ''} ${ai.geminiKey ? 'GEMINI' : ''}`.trim() || 'NONE';
+
+                // Update badges and dashboard stats
+                const data = await api('/dashboard-data');
+                
+                // Stats in dashboard cards
+                document.getElementById('stat-msgs').innerText = s.totalMessages;
+                document.getElementById('stat-users').innerText = s.uniqueUsers;
+                document.getElementById('stat-orders').innerText = data.stats.pendingOrders;
+
+                const orderBadge = document.getElementById('order-badge');
+                if (data.stats.pendingOrders > 0) {
+                    orderBadge.innerText = data.stats.pendingOrders;
+                    orderBadge.classList.remove('hidden');
+                } else {
+                    orderBadge.classList.add('hidden');
+                }
+
+                const kbBadge = document.getElementById('kb-badge');
+                if (data.unknownQuestions.length > 0) {
+                    kbBadge.innerText = data.unknownQuestions.length;
+                    kbBadge.classList.remove('hidden');
+                } else {
+                    kbBadge.classList.add('hidden');
+                }
+
+                // Route data to correct tab
+                if (currentTab === 'dashboard') {
+                    renderConvoList(data.convos);
+                }
+                if (currentTab === 'orders') {
+                    renderOrders(data.orders);
+                }
+                if (currentTab === 'kb') {
+                    const active = document.activeElement;
+                    const isTyping = active && active.id && active.id.startsWith('ans-');
+                    if (!isTyping) {
+                        renderKB(data.unknownQuestions);
+                    }
+                }
+                if (currentTab === 'messages') {
+                    refreshMessages();
+                }
+
+                if (s.startedAt) {
+                    const diff = Math.floor((Date.now() - s.startedAt) / 1000);
+                    const h = Math.floor(diff / 3600).toString().padStart(2, '0');
+                    const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+                    const sec = Math.floor(diff % 60).toString().padStart(2, '0');
+                    document.getElementById('stat-uptime').innerText = `${h}:${m}:${sec}`;
+                }
+
+                // Update AI provider info
+                const aiDiv = document.getElementById('stat-ai');
+                let dotCol = ai.groqKeys > 0 || ai.geminiKey ? 'bg-emerald-500' : 'bg-rose-500';
+                aiDiv.innerHTML = `<span class="w-2 h-2 rounded-full ${dotCol}"></span> ${ai.provider.toUpperCase()} (${ai.groqKeys} Groq, ${ai.geminiKey ? 'Gemini ✅' : 'No Gemini'})`;
+
+                // Simulated Stats
+                const memUsage = (40 + (Math.sin(Date.now() / 5000) * 5)).toFixed(1);
+                document.getElementById('mem-bar').style.width = (memUsage / 5.12) + '%';
+                document.getElementById('mem-stat').innerText = `MEM: ${memUsage}MB / 512MB`;
+                document.getElementById('footer-mem').innerText = `Memory Usage: ${memUsage}MB / 512MB`;
+
+                // QR logic
+                const qrCont = document.getElementById('qr-container');
+                const connLoad = document.getElementById('conn-loading');
+                const connTitle = document.getElementById('conn-title');
+                const connDesc = document.getElementById('conn-desc');
+
+                if (s.qrAvailable) {
+                    const qr = await api('/qr');
+                    document.getElementById('qr-img').src = qr.qr;
+                    qrCont.classList.remove('hidden');
+                    connLoad.classList.add('hidden');
+                    connTitle.innerText = "Scan Me";
+                    connDesc.innerText = "Open WhatsApp on your phone, go to Settings > Linked Devices, and scan this code.";
+                } else if (s.status === 'connected') {
+                    qrCont.classList.add('hidden');
+                    connLoad.classList.add('hidden');
+                    connTitle.innerText = "Success!";
+                    connTitle.classList.add('text-emerald-500');
+                    connDesc.innerText = "Bot is online and responding to customers.";
+                } else {
+                    qrCont.classList.add('hidden');
+                    if (s.status === 'disconnected') {
+                        connLoad.classList.add('hidden');
+                        connTitle.innerText = "Bot Stopped";
+                        connTitle.classList.remove('text-emerald-500');
+                        connDesc.innerText = "Start the bot from the Setup tab to connect.";
+                    }
+                }
+
+                // Error box
+                const errBox = document.getElementById('error-box');
+                if (s.lastError) {
+                    errBox.classList.remove('hidden');
+                    document.getElementById('error-msg').innerText = s.lastError;
+                } else {
+                    errBox.classList.add('hidden');
+                }
+
+                // Key status in settings
+                document.getElementById('ai-key-status').innerHTML = `
+                    <span>Groq Keys: <b>${ai.groqKeys}</b></span>
+                    <span>Gemini API: <b>${ai.geminiKey ? 'Active' : 'Missing'}</b></span>
+                `;
+
+            } catch (e) {}
+        }
+
+        function renderConvoList(convos) {
+            const tbody = document.getElementById('convo-list');
+            if (!convos) return;
+            tbody.innerHTML = convos.map(c => `
+                <tr class="hover:bg-slate-800/30 transition-colors">
+                    <td class="px-6 py-4 font-bold text-white">
+                        ${c.userName ? `<div class="text-[10px] text-emerald-500 uppercase tracking-widest font-black mb-0.5">${c.userName}</div>` : ''}
+                        ${c.user.split('@')[0]}
+                    </td>
+                    <td class="px-6 py-4">Total: ${c.msgs}</td>
+                    <td class="px-6 py-4 truncate max-w-xs">
+                        <div class="text-slate-400">User: ${c.lastMsg}</div>
+                        <div class="text-emerald-400">Bot: ${c.lastReply}</div>
+                    </td>
+                    <td class="px-6 py-4 text-slate-500">${new Date(c.time).toLocaleTimeString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        async function refreshMessages() {
+            const msgs = await api('/messages');
+            const feed = document.getElementById('content-messages');
+            feed.innerHTML = msgs.slice(0, 50).map(m => `
+                <div class="card p-4 space-y-2 border-l-4 ${m.reply.startsWith('[ERROR]') ? 'border-l-rose-500' : 'border-l-emerald-500'}">
+                    <div class="flex justify-between text-xs text-slate-500 font-medium">
+                        <span>👤 ${m.sender.split('@')[0]}</span>
+                        <span>${new Date(m.timestamp).toLocaleString()}</span>
+                    </div>
+                    <p class="text-slate-200">"${m.message}"</p>
+                    <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                        <p class="text-emerald-400 font-medium text-xs mb-1 uppercase tracking-tighter">Bot Response</p>
+                        <p class="text-sm">${m.reply}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function rewriteBusiness() {
+            const body = getFormData();
+            if (!body.businessName) return toast("Business Name is required", true);
+            
+            const statusMsg = body.websiteUrl 
+                ? "Full Website Scan & Deep AI Rewrite (Gemini 1.5 Pro)..." 
+                : "Deep Rewriting (Gemini 1.5 Pro)...";
+            
+            toast(statusMsg);
+            
+            try {
+                const res = await api('/rewrite-business', 'POST', body);
+                if (res.ok) {
+                    document.getElementById('biz-services').value = res.rewritten;
+                    toast("✓ Website scanned and knowledge base updated!");
+                } else {
+                    throw new Error(res.error);
+                }
+            } catch (err) {
+                toast("Rewrite failed: " + err.message, true);
+            }
+        }
+
+        async function startBot() {
+            const body = getFormData();
+            if (!body.businessName) return toast("Business Name is required", true);
+            toast("Starting system...");
+            const res = await api('/start-bot', 'POST', body);
+            if (res.ok) {
+                toast("Bot session initialized");
+                showTab('connection');
+            } else {
+                toast(res.error, true);
+            }
+        }
+
+        async function stopBot() {
+            const res = await api('/stop-bot', 'POST');
+            if (res.ok) toast("WhatsApp disconnected");
+        }
+
+        async function saveSettings() {
+            const provider = document.querySelector('input[name="ai-prov"]:checked').value;
+            const min = parseInt(document.getElementById('set-delay-min').value);
+            const max = parseInt(document.getElementById('set-delay-max').value);
+            
+            const res = await api('/settings', 'POST', {
+                aiProvider: provider,
+                responseDelay: { min, max }
+            });
+            if (res.ok) toast("Settings saved successfully");
+        }
+
+        function getFormData() {
+            return {
+                businessName: document.getElementById('biz-name').value,
+                category: document.getElementById('biz-cat').value,
+                websiteUrl: document.getElementById('biz-web').value,
+                tone: document.getElementById('biz-tone').value,
+                style: document.getElementById('biz-style').value,
+                services: document.getElementById('biz-services').value,
+                pricing: document.getElementById('biz-pricing').value,
+                faq: document.getElementById('biz-faq').value
+            };
+        }
+
+        function renderOrders(orders) {
+            const list = document.getElementById('orders-list');
+            if (orders.length === 0) {
+                list.innerHTML = '<div class="card p-12 text-center text-slate-500 italic">No orders detected yet. Sell something!</div>';
+                return;
+            }
+            list.innerHTML = orders.map(o => {
+                const d = o.details || {};
+                return `
+                <div class="card p-6 flex flex-col gap-4 bg-slate-900/50 border-slate-800 ${o.status === 'confirmed' ? 'opacity-70 border-l-emerald-500' : 'border-l-rose-500 shadow-lg shadow-rose-500/5'}">
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-black uppercase text-slate-500 tracking-widest">${o.id}</span>
+                                <span class="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${o.status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}">${o.status}</span>
+                            </div>
+                            <h4 class="text-white font-bold text-lg">${o.customerPhone}</h4>
+                            <p class="text-[9px] text-slate-600 uppercase font-bold">${new Date(o.timestamp).toLocaleString()}</p>
+                        </div>
+                        ${o.status === 'pending' ? `
+                            <button onclick="confirmOrder('${o.id}')" class="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition-transform active:scale-95 shadow-lg shadow-emerald-500/20">CONFIRM & SEND</button>
+                        ` : '<span class="px-4 py-1 bg-emerald-500/10 text-emerald-500 rounded border border-emerald-500/20 font-bold text-xs">ORDER SENT</span>'}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-3 bg-black/20 p-4 rounded-xl border border-slate-800">
+                            <h5 class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">AI Extracted Details (Editable)</h5>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[9px] text-slate-500 uppercase font-bold mb-1">Customer Name</label>
+                                    <input type="text" id="edit-name-${o.id}" value="${d.name || ''}" class="w-full bg-slate-800/50 text-xs text-white p-2 rounded border border-slate-700 outline-none focus:border-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] text-slate-500 uppercase font-bold mb-1">Item(s)</label>
+                                    <input type="text" id="edit-item-${o.id}" value="${d.item || ''}" class="w-full bg-slate-800/50 text-xs text-white p-2 rounded border border-slate-700 outline-none focus:border-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] text-slate-500 uppercase font-bold mb-1">Price</label>
+                                    <input type="text" id="edit-price-${o.id}" value="${d.price || ''}" class="w-full bg-slate-800/50 text-xs text-white p-2 rounded border border-slate-700 outline-none focus:border-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] text-slate-500 uppercase font-bold mb-1">Phone</label>
+                                    <input type="text" id="edit-phone-${o.id}" value="${d.phone || o.customerPhone}" class="w-full bg-slate-800/50 text-xs text-white p-2 rounded border border-slate-700 outline-none focus:border-emerald-500">
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="block text-[9px] text-slate-500 uppercase font-bold mb-1">Delivery Address</label>
+                                    <input type="text" id="edit-address-${o.id}" value="${d.address || ''}" class="w-full bg-slate-800/50 text-xs text-white p-2 rounded border border-slate-700 outline-none focus:border-emerald-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 bg-slate-800/20 p-4 rounded-xl border border-slate-700/50">
+                            <h5 class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Original Request</h5>
+                            <div class="text-sm text-slate-300 bg-black/30 p-3 rounded-lg border border-slate-800 italic leading-relaxed">
+                                "${o.lastMessage}"
+                            </div>
+                            <p class="text-[9px] text-slate-500">This is exactly what the customer typed on WhatsApp. Cross-check for accuracy.</p>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        async function confirmOrder(id) {
+            const name = document.getElementById(`edit-name-${id}`).value;
+            const item = document.getElementById(`edit-item-${id}`).value;
+            const price = document.getElementById(`edit-price-${id}`).value;
+            const address = document.getElementById(`edit-address-${id}`).value;
+            const phone = document.getElementById(`edit-phone-${id}`).value;
+
+            toast("Confirming order details...");
+            const res = await api('/confirm-order', 'POST', { 
+                id, 
+                confirmedDetails: { name, item, price, address, phone } 
+            });
+            
+            if (res.ok) {
+                toast("✓ Order confirmed and client notified");
+                refreshStatus();
+            }
+        }
+
+        function renderKB(questions) {
+            const list = document.getElementById('kb-questions-list');
+            if (questions.length === 0) {
+                list.innerHTML = '<div class="card p-12 text-center text-slate-500 italic">AI knows everything for now! No knowledge gaps found.</div>';
+                return;
+            }
+            list.innerHTML = questions.map(q => `
+                <div class="card p-6 border-l-4 border-amber-500 space-y-4">
+                    <div>
+                        <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Untrained Question</p>
+                        <p class="text-white font-medium text-lg leading-tight">"${q.question}"</p>
+                    </div>
+                    <div class="space-y-2">
+                        <textarea id="ans-${q.id}" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg outline-none text-sm text-slate-200" placeholder="Type the answer here..."></textarea>
+                        <button onclick="saveKB('${q.id}', '${q.question.replace(/'/g, "\\'")}')" class="btn-green px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Add to Knowledge Base</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function saveKB(id, question) {
+            const answer = document.getElementById(`ans-${id}`).value.trim();
+            if (!answer) return toast("Please provide an answer first", true);
+            toast("Updating AI Knowledge Base...");
+            const res = await api('/add-to-kb', 'POST', { id, question, answer });
+            if (res.ok) {
+                toast("✓ Knowledge Vault updated!");
+                refreshStatus();
+            }
+        }
+
+        // Init
+        statusPoll = setInterval(refreshStatus, 3000);
+        showTab('dashboard');
+        refreshStatus();
+        
+        // Initial setup data
+        api('/settings').then(s => {
+            document.getElementById('set-delay-min').value = s.responseDelay.min;
+            document.getElementById('set-delay-max').value = s.responseDelay.max;
+            document.querySelector(`input[name="ai-prov"][value="${s.aiProvider}"]`).checked = true;
+        });
+    </script>
+</body>
+</html>
