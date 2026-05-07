@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-200">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaliBot | WhatsApp AI SaaS Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
+        .card { background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 1rem; transition: all 0.3s ease; }
+        .card:hover { border-color: rgba(16, 185, 129, 0.2); background: rgba(30, 41, 59, 0.6); }
+        .btn-primary { background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+        .active-tab { color: #10b981; border-bottom: 2px solid #10b981; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</head>
+<body class="h-full overflow-hidden flex flex-col">
+
+    <!-- Top Navigation -->
+    <nav class="glass border-b border-white/5 px-6 py-4 flex items-center justify-between z-50">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold text-white tracking-tight">Wali<span class="text-emerald-500">Bot</span></h1>
+                <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Enterprise AI Automation</p>
+            </div>
+            <a id="back-home" href="/" class="ml-4 hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-semibold transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l9-9 9 9M5 10v10h14V10"></path></svg>
+                Back to Home
+            </a>
+        </div>
+        <script>
+          // Allow ?home=https://yourapp.com to override the back link target
+          (function(){
+            try {
+              const params = new URLSearchParams(location.search);
+              const home = params.get('home') || localStorage.getItem('walibot_home_url');
+              if (home) {
+                localStorage.setItem('walibot_home_url', home);
+                const el = document.getElementById('back-home');
+                if (el) el.href = home;
+              }
+            } catch(e){}
+          })();
+        </script>
+
+        <div class="flex items-center gap-6">
+            <div id="status-badge" class="flex items-center gap-2 px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-full">
+                <div class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>
+                <span class="text-[10px] font-bold text-rose-500 uppercase tracking-wide">Disconnected</span>
+            </div>
+            <button onclick="refreshData()" class="p-2 text-slate-400 hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            </button>
+        </div>
+    </nav>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar Navigation -->
+        <aside class="w-20 md:w-64 glass border-r border-white/5 flex flex-col p-4 gap-2">
+            <button onclick="showTab('status')" id="tab-status" class="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/5 text-slate-400 font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span class="hidden md:block">Overview</span>
+            </button>
+            <button onclick="showTab('orders')" id="tab-orders" class="flex items-center justify-between p-3 rounded-xl transition-all hover:bg-white/5 text-slate-400 font-medium relative">
+                <div class="flex items-center gap-3">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                    <span class="hidden md:block">Order Queue</span>
+                </div>
+                <span id="order-badge" class="hidden absolute top-2 right-2 md:static md:flex bg-emerald-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md min-w-[18px] justify-center">0</span>
+            </button>
+            <button onclick="showTab('convos')" id="tab-convos" class="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/5 text-slate-400 font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"></path></svg>
+                <span class="hidden md:block">Leads & Chats</span>
+            </button>
+            <button onclick="showTab('questions')" id="tab-questions" class="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/5 text-slate-400 font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span class="hidden md:block">AI Training</span>
+            </button>
+
+            <div class="mt-auto pt-4 border-t border-white/5 flex flex-col gap-2">
+                <button onclick="showTab('settings')" id="tab-settings" class="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/5 text-slate-400 font-medium">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+                    <span class="hidden md:block">Bot Config</span>
+                </button>
+                <button onclick="showTab('api')" id="tab-api" class="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-emerald-500/10 text-emerald-500 font-bold border border-emerald-500/10">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                    <span class="hidden md:block">Connect Frontend</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto p-8 relative">
+            
+            <!-- SECTION: STATUS -->
+            <section id="content-status" class="tab-content animate__animated animate__fadeIn">
+                <div class="max-w-6xl mx-auto space-y-8">
+                    <header>
+                        <h2 class="text-3xl font-bold text-white tracking-tight">System Overview</h2>
+                        <p class="text-slate-500">Live operational data and WhatsApp connectivity status.</p>
+                    </header>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div class="card p-6 flex flex-col justify-between">
+                            <div>
+                                <p class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Total Signals</p>
+                                <h4 id="stat-msgs" class="text-3xl font-black text-white">0</h4>
+                            </div>
+                            <div class="mt-4 flex items-center gap-2 text-emerald-500 text-[10px] font-bold">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> REAL-TIME STREAMING
+                            </div>
+                        </div>
+                        <div class="card p-6 border-l-2 border-emerald-500">
+                            <p class="text-emerald-500/50 text-[10px] font-black uppercase tracking-widest mb-1">Active Conversions</p>
+                            <h4 id="stat-orders" class="text-3xl font-black text-white">0</h4>
+                            <p class="mt-2 text-slate-500 text-[10px]">Sales detected by AI</p>
+                        </div>
+                        <div class="card p-6">
+                            <p class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Unique Clients</p>
+                            <h4 id="stat-users" class="text-3xl font-black text-white">0</h4>
+                        </div>
+                        <div class="card p-6">
+                            <p class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Lead Health</p>
+                            <h4 class="text-3xl font-black text-emerald-500">98%</h4>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- WhatsApp Link Card -->
+                        <div class="card p-8 bg-gradient-to-br from-slate-900 to-slate-950 border-white/10 shadow-2xl relative overflow-hidden">
+                            <div class="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl"></div>
+                            <h3 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12.011 20.993l-.011.011c-4.962 0-9-4.038-9-9 0-4.962 4.038-9 9-9h.011c4.962 0 9 4.038 9 9 0 4.962-4.038 9-9 9zM12 2c-5.523 0-10 4.477-10 10s4.477 10 10 10 10-4.477 10-10-4.477-10-10-10zM17.062 14.821c-.301-.151-1.782-.879-2.057-.979s-.475-.152-.676.151c-.2.301-.776.979-.951 1.18-.176.201-.351.226-.652.075-.301-.151-1.271-.468-2.42-1.493-.895-.799-1.5-1.786-1.675-2.087s-.019-.464.131-.615c.135-.135.301-.351.451-.527.147-.176.201-.301.301-.502.1-.201.05-.376-.025-.527s-.676-1.631-.926-2.232c-.244-.582-.49-.502-.676-.511-.176-.01-.376-.01-.577-.01s-.527.075-.802.376c-.276.301-1.053 1.029-1.053 2.508 0 1.48 1.078 2.91 1.228 3.111.151.201 2.121 3.238 5.138 4.542.718.311 1.278.496 1.716.635.722.229 1.38.196 1.9.117.58-.088 1.782-.728 2.033-1.43.251-.703.251-1.305.176-1.43-.075-.125-.276-.201-.577-.351z"/></svg>
+                                WhatsApp Connectivity
+                            </h3>
+                            <div id="qr-container" class="flex flex-col items-center gap-6 py-4">
+                                <div class="p-4 bg-white rounded-2xl shadow-xl w-64 h-64 flex items-center justify-center border-4 border-slate-800">
+                                    <div class="text-slate-400 text-center text-sm py-12">
+                                        <svg class="w-12 h-12 mx-auto mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2m-4-8H4m16 4h2M4 12H2m12 0H8m4 4v1M4 4h4v4H4V4zm12 0h4v4h-4V4zM4 16h4v4H4v-4zm12 0h4v4h-4v-4z"></path></svg>
+                                        Fetching QR Code...
+                                    </div>
+                                </div>
+                                <p class="text-slate-400 text-sm text-center">Scan this with your WhatsApp Linked Devices to start automation.</p>
+                            </div>
+                        </div>
+
+                        <!-- System Logs -->
+                        <div class="card p-8 flex flex-col h-full bg-black/20">
+                            <h3 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                Signal Log Stream
+                            </h3>
+                            <div id="log-list" class="flex-1 space-y-3 font-mono text-[11px] overflow-y-auto max-h-[300px]">
+                                <!-- Logs here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: ORDER QUEUE (Functional List) -->
+            <section id="content-orders" class="tab-content hidden animate__animated animate__fadeIn">
+                <div class="max-w-6xl mx-auto space-y-8">
+                    <header class="flex justify-between items-end">
+                        <div>
+                            <h2 class="text-3xl font-bold text-white tracking-tight">Order Queue</h2>
+                            <p class="text-slate-500">AI-detected sales leads requiring confirmation.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <span class="px-3 py-1 rounded-lg bg-orange-500/10 text-orange-500 text-[10px] font-bold border border-orange-500/20">PENDING: <span id="pending-count">0</span></span>
+                            <span class="px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-500 text-[10px] font-bold border border-emerald-500/20">CONFIRMED: <span id="confirmed-count">0</span></span>
+                        </div>
+                    </header>
+
+                    <div id="order-list" class="grid grid-cols-1 gap-6">
+                        <!-- Orders populated here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: CONVOS (Leads) -->
+            <section id="content-convos" class="tab-content hidden animate__animated animate__fadeIn">
+                <div class="max-w-6xl mx-auto space-y-8">
+                    <header>
+                        <h2 class="text-3xl font-bold text-white tracking-tight">Lead Intelligence</h2>
+                        <p class="text-slate-500">Automated profiling of every WhatsApp interaction.</p>
+                    </header>
+
+                    <div class="card overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-black/40 border-b border-white/5 uppercase text-[10px] font-black text-slate-500 tracking-widest">
+                                    <th class="px-6 py-4">Lead Profile</th>
+                                    <th class="px-6 py-4">Engagement</th>
+                                    <th class="px-6 py-4">Last Signal</th>
+                                    <th class="px-6 py-4 text-right">Context</th>
+                                </tr>
+                            </thead>
+                            <tbody id="convo-table-body" class="divide-y divide-white/5">
+                                <!-- Convo rows here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: QUESTIONS (AI Training) -->
+            <section id="content-questions" class="tab-content hidden animate__animated animate__fadeIn">
+                 <div class="max-w-4xl mx-auto space-y-8">
+                    <header>
+                        <h2 class="text-3xl font-bold text-white tracking-tight">AI Training Center</h2>
+                        <p class="text-slate-500">Review signals where the AI was uncertain. Update your business logic to improve accuracy.</p>
+                    </header>
+                    <div id="question-list" class="space-y-4">
+                        <!-- Questions here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: API REFERENCE (Integration) -->
+            <section id="content-api" class="tab-content hidden animate__animated animate__fadeIn">
+                <div class="max-w-4xl mx-auto space-y-8">
+                    <header>
+                        <h2 class="text-3xl font-bold text-emerald-500 tracking-tight">Connect Your Frontend</h2>
+                        <p class="text-slate-400">Use these endpoints to build your own custom React, Vue, or Next.js app on top of WaliBot.</p>
+                    </header>
+
+                    <div class="space-y-6">
+                        <div class="card p-6 border-l-4 border-l-emerald-500 bg-emerald-500/5">
+                            <h4 class="text-sm font-bold text-emerald-400 mb-2">Base Production URL</h4>
+                            <div class="flex items-center gap-3 bg-black/40 p-3 rounded-lg border border-white/5">
+                                <code id="base-url" class="mono text-emerald-500 text-xs break-all"></code>
+                                <button onclick="copyToClipboard('base-url')" class="ml-auto text-[10px] text-slate-500 hover:text-white font-bold">COPY URL</button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <!-- API Card -->
+                            <div class="card p-6">
+                                <div class="flex items-center gap-2 mb-4">
+                                    <span class="px-2 py-0.5 rounded bg-blue-500 text-white text-[10px] font-black uppercase">GET</span>
+                                    <span class="mono text-xs text-white">/status</span>
+                                </div>
+                                <p class="text-slate-400 text-xs mb-4">Returns real-time operational state including message counts and unique leads.</p>
+                                <pre class="mono text-[10px] bg-black/40 p-4 rounded-xl border border-white/5 text-slate-400 whitespace-pre-wrap">{
+  "stats": { "totalMessages": 142, "pendingOrders": 3, "uniqueUsers": 21 },
+  "business": { "name": "Wali Store", ... }
+}</pre>
+                            </div>
+
+                            <div class="card p-6">
+                                <div class="flex items-center gap-2 mb-4">
+                                    <span class="px-2 py-0.5 rounded bg-emerald-500 text-white text-[10px] font-black uppercase">POST</span>
+                                    <span class="mono text-xs text-white">/settings</span>
+                                </div>
+                                <p class="text-slate-400 text-xs mb-4">Update bot configuration such as response delay and API provider settings.</p>
+                                <pre class="mono text-[10px] bg-black/40 p-4 rounded-xl border border-white/5 text-slate-400 whitespace-pre-wrap">{
+  "responseDelay": { "min": 2, "max": 5 },
+  "provider": "groq"
+}</pre>
+                            </div>
+
+                            <div class="card p-6">
+                                <div class="flex items-center gap-2 mb-4">
+                                    <span class="px-2 py-0.5 rounded bg-emerald-500 text-white text-[10px] font-black uppercase">POST</span>
+                                    <span class="mono text-xs text-white">/webhook/order</span>
+                                </div>
+                                <p class="text-slate-400 text-xs mb-4">External CRM integration. Send order updates from your store to trigger WhatsApp notifications.</p>
+                                <pre class="mono text-[10px] bg-black/40 p-4 rounded-xl border border-white/5 text-slate-400 whitespace-pre-wrap">{
+  "customer_phone": "923xxx",
+  "status": "confirmed", // or processing, completed, cancelled
+  "order_number": "12345",
+  "customer_name": "Abdullah"
+}</pre>
+                            </div>
+                        </div>
+
+                        <!-- NEW: AI PROMPT FOR FRONTEND -->
+                        <div class="card p-8 border-l-4 border-l-blue-500 bg-blue-500/5 mt-12">
+                            <h3 class="text-xl font-bold text-white mb-2">Frontend AI Builder Prompt</h3>
+                            <p class="text-slate-400 text-sm mb-6">Copy this prompt and paste it into any AI coding tool (like v0.dev or Claude) to generate a full React frontend that connects to this backend instantly.</p>
+                            
+                            <div class="bg-black/60 p-6 rounded-2xl border border-white/10 relative">
+                                <button onclick="copyToClipboard('frontend-prompt')" class="absolute top-4 right-4 bg-blue-500 hover:bg-blue-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg transition-all">COPY PROMPT</button>
+                                <pre id="frontend-prompt" class="text-[11px] text-blue-100 font-mono whitespace-pre-wrap leading-relaxed">
+ACT AS A SENIOR REACT DEVELOPER. 
+Build a clean, high-converting React Dashboard for a WhatsApp AI SaaS called "WaliBot".
+
+INTEGRATION SPECS:
+- Base API URL: ${window.location.origin}
+- Use 'fetch' for API calls.
+- Main endpoints:
+  1. GET /status (System health & stats)
+  2. GET /dashboard-data (Orders, Lead lists, AI Questions)
+  3. POST /confirm-order { id, confirmedDetails } (Confirm a sale)
+  4. POST /start-bot { businessName, websiteUrl, ... } (Launch session)
+
+UI REQUIREMENTS:
+- Primary Color: Emerald-500 (#10b981)
+- Dark Theme Layout
+- Tabs for: "Sales Pipeline", "Customer Chats", "Bot Intelligence"
+- A prominent 'Link WhatsApp' QR section that polls /qr
+- A 'Real-time Feed' that lists messages from /messages
+
+FUNCTIONAL GOAL:
+The app must allow business owners to link their WhatsApp, train their bot by answering questions, and confirm orders with a single click.
+                                </pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: SETTINGS -->
+            <section id="content-settings" class="tab-content hidden animate__animated animate__fadeIn">
+                <div class="max-w-5xl mx-auto space-y-8">
+                    <header>
+                        <h2 class="text-3xl font-bold text-white tracking-tight">Bot Configuration</h2>
+                        <p class="text-slate-500">Fine-tune AI personality, response timing, and operational logic.</p>
+                    </header>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="card p-8 space-y-6">
+                            <h3 class="font-bold text-emerald-500 uppercase text-xs tracking-widest">Business Intelligence</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Detailed Business Info</label>
+                                    <textarea id="business-content" rows="12" class="w-full glass bg-slate-900 shadow-inner rounded-xl p-4 text-xs text-slate-300 outline-none focus:border-emerald-500/50 transition-all font-mono" placeholder="Paste product lists, pricing charts, company details..."></textarea>
+                                </div>
+                                <div class="flex gap-3">
+                                    <button onclick="saveBusiness()" class="flex-1 py-4 btn-primary rounded-xl text-xs font-bold text-white uppercase tracking-widest transition-transform active:scale-95">Sync & Save</button>
+                                    <button onclick="rewriteBusiness()" class="px-6 py-4 border border-emerald-500/30 text-emerald-500 rounded-xl text-xs font-bold uppercase tracking-widest">AI Rewrite</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-8">
+                            <div class="card p-8 space-y-6">
+                                <h3 class="font-bold text-blue-400 uppercase text-xs tracking-widest">Operation Controls</h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-[10px] text-slate-500 font-bold mb-1">Min Delay (sec)</label>
+                                        <input type="number" id="min-delay" class="w-full glass p-3 rounded-lg text-white font-bold outline-none focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] text-slate-500 font-bold mb-1">Max Delay (sec)</label>
+                                        <input type="number" id="max-delay" class="w-full glass p-3 rounded-lg text-white font-bold outline-none focus:border-blue-500">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-500 font-bold mb-1">Primary AI Engine</label>
+                                    <select id="ai-provider" class="w-full glass p-3 rounded-lg text-white font-bold outline-none border border-white/5">
+                                        <option value="auto">Auto (Smart Balancing)</option>
+                                        <option value="groq">Groq (Llama 3 - Ultra Fast)</option>
+                                        <option value="gemini">Gemini 1.5 Pro (Precision)</option>
+                                    </select>
+                                </div>
+                                <button onclick="saveSettings()" class="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold uppercase tracking-widest">Apply Global Settings</button>
+                            </div>
+                            
+                            <div class="flex gap-4">
+                                <button onclick="startBot()" class="flex-1 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-black uppercase shadow-lg shadow-emerald-500/20">Init Session</button>
+                                <button onclick="stopBot()" class="px-8 py-4 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl text-xs font-black uppercase">Kill Node</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- NOTIFICATION SYSTEM -->
+    <div id="toast-container" class="fixed bottom-8 right-8 z-[100] flex flex-col gap-2"></div>
+
+    <script>
+        let currentTab = 'status';
+
+        function showTab(id) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('aside button').forEach(b => {
+                b.classList.remove('bg-white/10', 'text-white', 'border-emerald-500');
+                b.classList.add('text-slate-400');
+            });
+            
+            document.getElementById(`content-${id}`).classList.remove('hidden');
+            const target = document.getElementById(`tab-${id}`);
+            if (target) {
+                target.classList.add('bg-white/10', 'text-white');
+                if (id === 'api') target.classList.add('border-emerald-500');
+            }
+            currentTab = id;
+            if (id === 'convos') renderConvos();
+        }
+
+        async function api(path, method = 'GET', body = null) {
+            try {
+                const opt = { method, headers: { 'Content-Type': 'application/json' } };
+                if (body) opt.body = JSON.stringify(body);
+                const res = await fetch(path, opt);
+                return await res.json();
+            } catch (e) {
+                console.error("API Error:", e);
+                return { error: true };
+            }
+        }
+
+        function toast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            el.className = `glass px-6 py-4 rounded-2xl shadow-2xl animate__animated animate__fadeInUp flex items-center gap-3 border-l-4 ${type === 'err' ? 'border-l-rose-500' : 'border-l-emerald-500'}`;
+            el.innerHTML = `
+                <div class="text-xs font-bold text-white">${msg}</div>
+                <button onclick="this.parentElement.remove()" class="text-slate-500 hover:text-white">×</button>
+            `;
+            container.appendChild(el);
+            setTimeout(() => {
+                if(el) {
+                    el.classList.replace('animate__fadeInUp', 'animate__fadeOutDown');
+                    setTimeout(() => el.remove(), 500);
+                }
+            }, 3000);
+        }
+
+        async function refreshData() {
+            const data = await api('/status');
+            if (data.error) return;
+
+            // Stats
+            document.getElementById('stat-msgs').innerText = data.totalMessages || 0;
+            document.getElementById('stat-users').innerText = data.uniqueUsers || 0;
+            document.getElementById('stat-orders').innerText = data.stats?.pendingOrders || 0;
+            document.getElementById('pending-count').innerText = data.stats?.pendingOrders || 0;
+            
+            // Badge
+            const badge = document.getElementById('order-badge');
+            badge.innerText = data.stats?.pendingOrders || 0;
+            badge.classList.toggle('hidden', (data.stats?.pendingOrders || 0) === 0);
+
+            // Connect Link & QR
+            document.getElementById('base-url').innerText = window.location.origin;
+            const statusBadge = document.getElementById('status-badge');
+            
+            if (data.qrAvailable && data.status !== 'connected') {
+                const qrRes = await api('/qr');
+                document.getElementById('qr-container').innerHTML = `
+                    <div class="relative group">
+                        <img src="${qrRes.qr}" class="w-64 h-64 bg-white p-2 rounded-xl shadow-xl">
+                        <div class="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/10 transition-all rounded-xl"></div>
+                    </div>
+                    <p class="text-emerald-500 font-black text-[10px] uppercase tracking-widest animate-pulse">QR Detected • Ready to Link</p>
+                `;
+                statusBadge.innerHTML = '<div class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div><span class="text-[10px] font-bold text-orange-500 uppercase tracking-wide">Awaiting Login</span>';
+            } else if (data.status === 'connected') {
+                document.getElementById('qr-container').innerHTML = `
+                    <div class="text-center py-12">
+                        <div class="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-emerald-500/30">
+                            <svg class="w-10 h-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3"></path></svg>
+                        </div>
+                        <h4 class="text-emerald-500 font-black text-xl uppercase tracking-tighter">Session Active</h4>
+                        <p class="text-slate-500 text-xs mt-2 uppercase tracking-widest font-bold">Encrypted Node: ${window.location.hostname}</p>
+                    </div>
+                `;
+                statusBadge.innerHTML = '<div class="w-2 h-2 rounded-full bg-emerald-500"></div><span class="text-[10px] font-bold text-emerald-500 uppercase tracking-wide">Securely Linked</span>';
+            }
+
+            // Fill Settings
+            if (data.responseDelay) {
+                document.getElementById('min-delay').value = data.responseDelay.min;
+                document.getElementById('max-delay').value = data.responseDelay.max;
+                document.getElementById('ai-provider').value = data.aiProvider || 'auto';
+            }
+            if (data.business) {
+                // ... handled by refreshData if we had separate call but here it's in /status
+            }
+
+            renderLogs();
+            if (currentTab === 'orders') renderOrders();
+            if (currentTab === 'questions') renderQuestions();
+        }
+
+        async function renderLogs() {
+            const msgs = await api('/messages');
+            const list = document.getElementById('log-list');
+            if (msgs.length === 0) {
+                list.innerHTML = '<div class="text-slate-600 italic">Listening for radio signals...</div>';
+                return;
+            }
+            list.innerHTML = msgs.slice(0, 10).map(m => `
+                <div class="flex gap-3 group items-start">
+                    <span class="text-slate-700 text-[10px] mt-0.5">${new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    <span class="${m.sender === 'AI' ? 'text-emerald-500' : 'text-blue-400'} font-black text-[10px] uppercase tracking-tighter w-8 shrink-0">${m.sender === 'AI' ? 'BOT' : 'USR'}</span>
+                    <span class="text-slate-400 text-[11px] leading-relaxed line-clamp-1 group-hover:line-clamp-none transition-all">${m.message}</span>
+                </div>
+            `).join('');
+        }
+
+        async function renderOrders() {
+            const data = await api('/dashboard-data');
+            const orders = data.orders || [];
+            const list = document.getElementById('order-list');
+            document.getElementById('confirmed-count').innerText = orders.filter(o => o.status === 'confirmed').length;
+            
+            if (orders.length === 0) {
+                list.innerHTML = '<div class="card p-12 text-center text-slate-500 italic">No signals detected. Waiting for sales inquiry...</div>';
+                return;
+            }
+
+            list.innerHTML = orders.map(o => {
+                const d = o.details || {};
+                const isPending = o.status === 'pending';
+                return `
+                <div class="card p-8 flex flex-col gap-6 bg-slate-900/80 border-slate-800 ${isPending ? 'border-l-rose-500' : 'opacity-60 border-l-emerald-500'}">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center font-black text-slate-500 border border-white/5 uppercase text-xs tracking-tighter">${o.id.slice(0,2)}</div>
+                            <div>
+                                <h4 class="text-white font-black text-xl tracking-tight">${o.customerPhone}</h4>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="px-2 py-0.5 rounded text-[8px] font-black uppercase ${isPending ? 'bg-rose-500' : 'bg-emerald-500'}">${o.status}</span>
+                                    <span class="text-[10px] text-slate-600 font-bold">${new Date(o.timestamp).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+                        ${isPending ? `
+                            <button onclick="confirmOrder('${o.id}')" class="px-8 py-3 btn-primary text-white font-black text-xs rounded-xl transition-all active:scale-95">SEND CONFIRMATION</button>
+                        ` : '<span class="text-emerald-500 font-black text-[10px] uppercase tracking-widest px-4 py-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">✓ Transaction Dispatched</span>'}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-4 bg-black/40 p-6 rounded-2xl border border-white/5 shadow-inner">
+                            <h5 class="text-[9px] font-black text-emerald-500 uppercase tracking-widest">AI Profile Sync</h5>
+                            <div class="grid grid-cols-2 gap-4">
+                                ${['name', 'item', 'price', 'phone', 'address'].map(k => `
+                                    <div class="${k === 'address' ? 'col-span-2' : ''}">
+                                        <label class="block text-[8px] text-slate-600 uppercase font-black mb-1.5">${k}</label>
+                                        <input type="text" id="edit-${k}-${o.id}" value="${d[k] || ''}" class="w-full bg-slate-950/50 text-xs text-white p-3 rounded-xl border border-white/5 outline-none focus:border-emerald-500/50 transition-all">
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="space-y-4 bg-slate-900/50 p-6 rounded-2xl flex flex-col border border-white/5">
+                            <h5 class="text-[9px] font-black text-slate-600 uppercase tracking-widest">Customer Raw Transcript</h5>
+                            <div class="flex-1 text-sm text-slate-300 italic leading-relaxed bg-black/20 p-5 rounded-2xl border border-white/5 font-medium relative overflow-hidden group">
+                                <div class="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent"></div>
+                                "${o.lastMessage}"
+                            </div>
+                            <p class="text-[9px] text-slate-700 font-bold uppercase tracking-widest">Processed by Gemini Intelligence Cluster</p>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        async function renderConvos() {
+            const data = await api('/dashboard-data');
+            const convos = data.convos || [];
+            if (!convos) return;
+            const tbody = document.getElementById('convo-table-body');
+            tbody.innerHTML = convos.map(c => `
+                <tr class="hover:bg-white/5 transition-all group border-b border-white/5">
+                    <td class="px-6 py-6">
+                        <div class="text-white font-bold tracking-tight">${c.userName || c.user.split('@')[0]}</div>
+                        <div class="text-[10px] text-slate-600 font-mono tracking-tighter mt-1">${c.user}</div>
+                    </td>
+                    <td class="px-6 py-6 font-mono text-emerald-500 font-bold text-xs">${c.msgs} Signals</td>
+                    <td class="px-6 py-6">
+                        <div class="text-slate-400 text-xs italic truncate max-w-xs font-medium">"${c.lastMsg}"</div>
+                    </td>
+                    <td class="px-6 py-6 text-right">
+                         <span class="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/20 text-[9px] font-black uppercase tracking-widest">Inbound Lead</span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function renderQuestions() {
+            const data = await api('/dashboard-data');
+            const qs = data.unknownQuestions || [];
+            const list = document.getElementById('question-list');
+            if (qs.length === 0) {
+                list.innerHTML = '<div class="card p-12 text-center text-slate-500 italic">Zero intelligence gaps found. AI is fully trained.</div>';
+                return;
+            }
+            list.innerHTML = qs.map(q => `
+                <div class="card p-8 flex flex-col gap-4 border-l-4 border-l-emerald-500 bg-emerald-500/5">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-black text-slate-600 uppercase tracking-widest">Training Signal Detected</span>
+                        <span class="text-[9px] font-bold text-slate-500">${new Date(q.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div class="text-base font-bold text-white italic leading-tight">"${q.message}"</div>
+                    <div class="mt-4 flex flex-col gap-3">
+                        <textarea id="ans-${q.id}" rows="2" class="w-full glass bg-black/40 p-4 rounded-xl text-xs text-slate-300 outline-none focus:border-emerald-500 transition-all font-mono" placeholder="Provide the official answer to train the bot..."></textarea>
+                        <button onclick="saveKB('${q.id}', '${q.message.replace(/'/g, "\\'")}')" class="py-3 btn-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-95">Add to Intelligence Core</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function saveKB(id, q) {
+            const a = document.getElementById(`ans-${id}`).value;
+            if(!a) return toast("Empty answer rejected", "err");
+            const res = await api('/add-to-kb', 'POST', { id, question: q, answer: a });
+            if (res.ok) {
+                toast("Intelligence Core Updated");
+                refreshData();
+            }
+        }
+
+        async function saveSettings() {
+            const min = parseInt(document.getElementById('min-delay').value);
+            const max = parseInt(document.getElementById('max-delay').value);
+            const provider = document.getElementById('ai-provider').value;
+            await api('/settings', 'POST', { responseDelay: { min, max }, provider });
+            toast("Automation parameters updated.");
+        }
+
+        async function saveBusiness() {
+            const content = document.getElementById('business-content').value;
+            toast("Syncing Knowledge Base...");
+            const res = await api('/start-bot', 'POST', { businessName: 'Update', content }); // Simplified sync
+            if (res.ok) toast("Knowledge Base Synced.");
+        }
+
+        async function rewriteBusiness() {
+            const content = document.getElementById('business-content').value;
+            toast("Optimizing with Gemini 1.5 Pro...");
+            const res = await api('/rewrite-business', 'POST', { content });
+            if (res.ok) {
+                document.getElementById('business-content').value = res.rewritten;
+                toast("AI Optimization Complete.");
+            }
+        }
+
+        async function startBot() {
+            const content = document.getElementById('business-content').value;
+            if(!content) return toast("Provide business data first", "err");
+            toast("Initializing Neural Link...");
+            const res = await api('/start-bot', 'POST', { businessName: 'WaliBot', content });
+            if (res.ok) {
+                toast("Neural Connection Active");
+                showTab('status');
+            }
+        }
+
+        async function stopBot() {
+            await api('/stop-bot', 'POST');
+            toast("Connection Terminated", "err");
+            refreshData();
+        }
+
+        async function confirmOrder(id) {
+            const confirmedDetails = {};
+            ['name', 'item', 'price', 'address', 'phone'].forEach(k => {
+                confirmedDetails[k] = document.getElementById(`edit-${k}-${id}`).value;
+            });
+            const res = await api('/confirm-order', 'POST', { id, confirmedDetails });
+            if (res.ok) {
+                toast("Transaction Dispatched Successfully");
+                refreshData();
+            }
+        }
+
+        function copyToClipboard(id) {
+            const text = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(text);
+            toast("Signal copied to clipboard");
+        }
+
+        // Pulse
+        setInterval(refreshData, 5000);
+        showTab('status');
+        refreshData();
+    </script>
+</body>
+</html>
